@@ -9,4 +9,4 @@ Hinge Loss
 Regularized Hinge Loss
 Logistic Regression
 
-2. K-Means Clustering
+2. Random Hyperplanes
