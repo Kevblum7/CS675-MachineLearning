@@ -1,0 +1,268 @@
+# Kevin Blum
+# CS 675 101
+# Project 2 -  Random Hyperplanes
+
+# Command Line Arguments Train Data , Test Data, K features
+
+
+import sys
+import random
+import math
+
+from sklearn import svm
+from sklearn.svm import LinearSVC
+
+
+
+
+#### FUNCTIONS #########
+
+###################
+#### Supplementary function to compute dot product
+###################
+def dotproduct(u, v):
+	assert len(u) == len(v), "dotproduct: u and v must be of same length"
+	dp = 0
+	for i in range(0, len(u), 1):
+		dp += u[i]*v[i]
+	return dp
+
+###################
+## Standardize the code here: divide each feature of each 
+## datapoint by the length of each column in the training data
+## return [traindata, testdata]
+###################
+def standardize_data(traindata, testdata):
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+    for j in range(0, cols, 1):
+        col_len = 0
+        for i in range(0, rows, 1):
+            col_len += traindata[i][j]**2
+        col_len = math.sqrt(col_len)
+        if(col_len == 0):
+            col_len = 1
+        for i in range(0, rows, 1):
+            traindata[i][j] /= col_len
+        for i in range(0, len(testdata), 1):
+            testdata[i][j] /= col_len
+
+
+
+    return [traindata, testdata]
+
+###################
+## Normalize the code here
+###################
+
+def normalize_data(traindata, testdata):
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+    for i in range(0, rows, 1):
+        row_len = 0
+        for j in range(0,cols,1):
+            row_len += traindata[i][j]**2
+        row_len = math.sqrt(row_len)
+        if(row_len == 0):
+            row_len = 1
+        for j in range(0, cols, 1):
+            traindata[i][j] /= row_len
+
+    rows = len(testdata)
+    
+    rows = len(testdata)
+    for i in range(0, rows, 1):
+        row_len = 0
+        for j in range(0, cols, 1):
+            row_len += testdata[i][j]**2
+        row_len = math.sqrt(row_len)
+        if(row_len == 0):
+            row_len = 1
+        for j in range(0, cols, 1):
+            testdata[i][j] /= row_len
+
+            
+
+    return[traindata, testdata]
+
+###################
+## Produce Random Hyperplanes
+## Return new featurized data
+## inputs data and number of features k
+###################
+
+def random_hyperplanes(traindata,testdata,k):
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+    rows1 = len(testdata)
+    cols1 = len(testdata[0])
+
+    train_new = []
+    test_new = []
+
+    # creating random uniform w vector
+    
+    for i in range(0, k, 1):
+        z = []
+        z_test = []
+        w = []
+        for j in range(0, cols, 1):
+            w.append(0)
+        for j in range(0, cols, 1):
+            w[j] = w[j] + random.uniform(1, -1)
+            
+        # project onto data
+        for i in range(0, rows, 1):
+            dotp = 0
+            dotp = dotproduct(w, traindata[i])
+            zi = int(math.copysign(1, dotp))
+            y = int((1+zi)/2)
+            z.append(y)
+                 
+                 
+        for i in range(0, rows1, 1):
+                
+            dotp1 = 0
+            dotp1 = dotproduct(w, testdata[i])
+            zit = int(math.copysign(1, dotp1))
+            u = int((1+zit)/2)
+            z_test.append(u)
+        
+        train_new.append(z)
+        test_new.append(z_test)
+        ztrain = zip(*train_new)
+        ztest = zip(*test_new)
+        
+        feat_traindata = []
+        feat_testdata = []
+        
+        for b in ztest:
+            feat_testdata.append(b)
+        for a in ztrain:
+            feat_traindata.append(a)
+        
+
+
+        
+             
+    return[feat_traindata, feat_testdata]
+
+#### MAIN #########
+
+###################
+#### Code to read train data and train labels
+###################
+
+traindatafile = sys.argv[1]
+f = open(traindatafile)
+traindata = []
+trainlabels = []
+i = 0
+l = f.readline()
+while( l != ''):
+    a = l.split()
+    l2 = []
+    trainlabels.append(int(a[0]))
+    for j in range(1, len(a), 1):
+        l2.append(float(a[j]))
+    l2.append(1)
+    traindata.append(l2)
+    l = f.readline()
+
+testdatafile = sys.argv[2]
+f = open(testdatafile)
+testdata = []
+testlabels = []
+i = 0
+l = f.readline()
+while( l != ''):
+    a = l.split()
+    l2 = []
+    testlabels.append(int(a[0]))
+    for j in range(1, len(a), 1):
+        l2.append(float(a[j]))
+    l2.append(1)
+    testdata.append(l2)
+    l = f.readline()
+    
+f.close()
+
+k = int(sys.argv[3])
+
+
+
+###################
+#### Code to test data and test labels
+#### The test labels are to be used
+#### only for evaluation and nowhere else.
+#### When your project is being graded we
+#### will use 0 label for all test points
+###################
+
+[traindata, testdata] = standardize_data(traindata, testdata)
+[traindata, testdata] = normalize_data(traindata, testdata)
+
+
+[rh_traindata,rh_testdata] = random_hyperplanes(traindata, testdata, k)
+
+
+
+####### training SVC model
+####### Original Data, no random hyperplanes
+clf = svm.SVC(kernel='linear', C=.05, max_iter=10000)
+clf.fit(traindata, trainlabels)
+
+
+p = 0
+
+OUT_SVC = open("original_output.txt", 'w')
+OUT_SVC.write("Pred      Actual\n")
+predictions = clf.predict(testdata)
+for i in range(0, len(testlabels), 1):
+   pre_line = ' ' + str(predictions[i]) + '       ' + str(testlabels[i])
+   OUT_SVC.write(pre_line)
+   OUT_SVC.write("\n")
+   if(predictions[i] == testlabels[i]):
+       p = p + 1
+
+# Producing error
+err = round(float(1 - (p / len(testlabels)))*100,2)
+
+pre_line1 = "The error of the linearSVC model without random hyperplanes is: " + str(err) + "%"
+
+OUT_SVC.write(pre_line1)
+OUT_SVC.close()
+       
+
+
+#clf = svm.SVC(kernel='linear', C=.05, max_iter=10000)
+
+####### Random Hyperplanes output
+
+
+clf.fit(rh_traindata,trainlabels)
+
+y = 0
+
+
+OUT_SVC_R = open("01space_output.txt", 'w')
+OUT_SVC_R.write("Pred      Actual\n")
+predictions = clf.predict(rh_testdata)
+for i in range(0, len(testlabels), 1):
+   pre_line3 = ' ' + str(predictions[i]) + '       ' + str(testlabels[i])
+   OUT_SVC_R.write(pre_line3)
+   OUT_SVC_R.write("\n")
+   if(predictions[i] == testlabels[i]):
+       y = y + 1
+
+# Producing error
+
+err1 = round(float(1 - (y / len(testlabels)))*100,2) 
+
+pre_line4 = "The error of the linearSVC model with random hyperplanes and " + str(k) + " new features is: " + str( err1) + "%"
+
+OUT_SVC_R.write(pre_line4)
+OUT_SVC_R.close()
