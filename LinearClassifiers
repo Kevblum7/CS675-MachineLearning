@@ -1,0 +1,698 @@
+import sys
+import random
+import math
+
+# Kevin Blum
+# CS 675 101
+# Project 1 - Linear Classifiers 
+
+
+#### FUNCTIONS #########
+
+###################
+#### Supplementary function to compute dot product
+###################
+def dotproduct(u, v):
+	assert len(u) == len(v), "dotproduct: u and v must be of same length"
+	dp = 0
+	for i in range(0, len(u), 1):
+		dp += u[i]*v[i]
+	return dp
+
+###################
+## Standardize the code here: divide each feature of each 
+## datapoint by the length of each column in the training data
+## return [traindata, testdata]
+###################
+def standardize_data(traindata, testdata):
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+    for j in range(0, cols, 1):
+        col_len = 0
+        for i in range(0, rows, 1):
+            col_len += traindata[i][j]**2
+        col_len = math.sqrt(col_len)
+        if(col_len == 0):
+            col_len = 1
+        for i in range(0, rows, 1):
+            traindata[i][j] /= col_len
+        for i in range(0, len(testdata), 1):
+            testdata[i][j] /= col_len
+
+
+
+    return [traindata, testdata]
+
+###################
+## Normalize the code here
+###################
+
+def normalize_data(traindata, testdata):
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+    for i in range(0, rows, 1):
+        row_len = 0
+        for j in range(0,cols,1):
+            row_len += traindata[i][j]**2
+        row_len = math.sqrt(row_len)
+        if(row_len == 0):
+            row_len = 1
+        for j in range(0, cols, 1):
+            traindata[i][j] /= row_len
+
+    rows = len(testdata)
+    
+    rows = len(testdata)
+    for i in range(0, rows, 1):
+        row_len = 0
+        for j in range(0, cols, 1):
+            row_len += testdata[i][j]**2
+        row_len = math.sqrt(row_len)
+        if(row_len == 0):
+            row_len = 1
+        for j in range(0, cols, 1):
+            testdata[i][j] /= row_len
+
+            
+
+    return[traindata, testdata]
+
+
+
+###################
+## Solver for least squares (linear regression)
+## return [w, w0]
+###################
+def least_squares(traindata, trainlabels):
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+
+    ###################
+    ## Initialize w
+    ###################
+
+    w = []
+    for i in range(0, cols, 1):
+        w.append(random.uniform(-.01, .01))
+
+    ###################
+    ## Gradient descent
+    ###################
+
+    ###Initializations
+    eta = .001
+    
+    dellf = []
+    for j in range(0, cols, 1):
+        dellf.append(0)
+
+    prevobj = 1000000000
+    obj = prevobj - 10
+    ###Main iteration loop #####
+    while(prevobj - obj > .001):
+
+        prevobj = obj
+        
+        ####Reset dellf to 0
+        for j in range(0, cols, 1):
+            dellf[j] = 0
+
+        ####Compute dellf ####
+        for i in range(0, rows, 1):
+            dp = dotproduct(w, traindata[i])
+            for j in range(0, cols, 1):
+                dellf[j] += (trainlabels[i] - dp) * traindata[i][j]
+                
+         
+        ####Update w ####
+        for j in range(0, cols, 1):
+            w[j] += eta * dellf[j]
+
+         
+        error = 0
+        ####Compute error ###
+        for i in range(0, rows, 1):
+            error += (trainlabels[i] - dotproduct(w, traindata[i]))**2
+        obj = error
+        #print("Objective is ", error)
+
+
+    return w
+        
+
+        
+                 
+
+###################
+## Solver for regularized least squares (linear regression)
+## return [w, w0]
+###################
+def least_squares_regularized(traindata, trainlabels):
+
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+
+    ###################
+    ## Initialize w
+    ###################
+
+    w = []
+    for i in range(0, cols, 1):
+        w.append(random.uniform(-.01, .01))
+
+    ###################
+    ## Gradient descent
+    ###################
+
+    ###Initializations
+    eta = .001
+    
+    dellf = []
+    for j in range(0, cols, 1):
+        dellf.append(0)
+
+    prevobj = 1000000000
+    obj = prevobj - 10
+    lamb = .01
+    ###Main iteration loop #####
+    while(prevobj - obj > .001):
+
+        prevobj = obj
+        
+        ####Reset dellf to 0
+        for j in range(0, cols, 1):
+            dellf[j] = 0
+
+
+
+        ####Compute dellf ####
+        for i in range(0, rows, 1):
+            dp = dotproduct(w, traindata[i])
+            for j in range(0, cols, 1):
+                dellf[j] += (trainlabels[i] - dp) * traindata[i][j]
+                
+         
+        ####Update w ####
+        for j in range(0, cols, 1):
+            w[j] += eta * dellf[j]
+
+        wNorm = 0
+        ####Compute L2 norm^2
+        for i in range(0, cols, 1):
+            wNorm += w[i]**2
+
+         
+        error = 0
+        ####Compute least square regularized error ###
+        for i in range(0, rows, 1):
+            error += (trainlabels[i] - dotproduct(w, traindata[i]))**2 
+        obj = (error + lamb * wNorm) / rows
+        #print("Objective is ", error)
+
+        
+
+    return w
+
+
+
+###################
+## Solver for hinge loss
+## return [w, w0]
+###################
+def hinge_loss(traindata, trainlabels):
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+
+    ###################
+    ## Initialize w
+    ###################
+
+    w = []
+    for i in range(0, cols, 1):
+        w.append(random.uniform(-.01, .01))
+
+    ###################
+    ## Gradient descent
+    ###################
+
+    ###Initializations
+    eta = .001
+
+    dellf = []
+    for j in range(0, cols, 1):
+        dellf.append(0)
+
+    prevobj = 1000000000
+    obj = prevobj - 10
+    
+    #iter = 0
+    
+
+    ####Main iteration loop #####
+    #while(abs(prevobj - obj) > 0 and iter < 10000):
+    while(abs(prevobj - obj) > 0.001):
+
+        prevobj = obj
+
+        ####Reset dellf to 0
+        for j in range(0, cols, 1):
+            dellf[j] = 0
+
+        ####Compute dellf for hinge loss####
+        for i in range(0, rows, 1):
+            dpH = trainlabels[i] * dotproduct(w, traindata[i])
+            for j in range(0, cols, 1):
+                if(dpH < 1):
+                    dellf[j] += -1 * (trainlabels[i] * traindata[i][j])
+                else:
+                    dellf[j] += 0
+                
+        
+        ####Update w ####
+        for j in range(0, cols, 1):
+            w[j] -= eta * dellf[j]
+        
+        
+        wNorm = 0
+        ####Compute L1 norm
+        for i in range(0, cols, 1):
+            wNorm += w[i]**2
+
+        wNorm = math.sqrt(wNorm)
+        
+
+        error = 0
+        ####Compute hine error ###
+        for i in range(0, rows, 1):
+            error += max(0, 1 - trainlabels[i] * dotproduct(w, traindata[i]) / wNorm)
+        obj = error
+        #print("Objective is ", obj)
+        
+    return w  
+
+
+
+
+###################
+## Solver for regularized hinge loss
+## return [w, w0]
+###################
+def hinge_loss_regularized(traindata, trainlabels):
+    
+    rows = len(traindata)
+    cols = len(traindata[0])
+
+    ###################
+    ## Initialize w
+    ###################
+
+    w = []
+    for i in range(0, cols, 1):
+        w.append(random.uniform(-.01, .01))
+
+    ###################
+    ## Gradient descent
+    ###################
+
+    ###Initializations
+    eta = .001
+
+    dellf = []
+    for j in range(0, cols, 1):
+        dellf.append(0)
+
+    prevobj = 1000000000
+    obj = prevobj - 10
+    iter = 0
+    
+    wNorm = 0
+    lamb = .01
+    ####Main iteration loop #####
+    #while(abs(prevobj - obj) > 0 and iter < 10000):
+    while(abs(prevobj - obj) > 0.001):
+
+        prevobj = obj
+        
+        ####Reset dellf to 0
+        for j in range(0, cols, 1):
+            dellf[j] = 0
+            
+
+
+        ####Compute dellf for hinge loss####
+        for i in range(0, rows, 1):
+            dpH = trainlabels[i] * dotproduct(w, traindata[i])
+            for j in range(0, cols, 1):
+                if(dpH < 1):
+                    dellf[j] += -1 *(trainlabels[i] * traindata[i][j]) 
+                else:
+                    dellf[j] += 0 
+
+
+        wNorm = 0
+        ####Compute L2 norm
+        for i in range(0, cols, 1):
+            wNorm += w[i]**2
+
+        wNorm = math.sqrt(wNorm)
+         
+        ####Update w ####
+        for j in range(0, cols, 1):
+            w[j] -= eta * dellf[j] 
+
+
+        error = 0
+        ####Compute hinge regularized error ###
+        for i in range(0, rows, 1):
+            error += max(0, 1 - trainlabels[i] * dotproduct(w, traindata[i])) 
+        obj = (error + lamb * wNorm**2) / rows
+        #print("Objective is ", obj)
+        
+
+    return w
+
+
+
+###################
+## Solver for logistic regression
+## return [w, w0]
+###################
+def logistic_loss(traindata, trainlabels):
+
+
+    rows = len(traindata)
+    cols = len(traindata[0])
+    
+
+
+    for a in range(0,cols,1):
+        if (trainlabels[a] == -1):
+            trainlabels[a] = 0
+    
+            
+
+    ###################
+    ## Initialize w
+    ###################
+
+    w = []
+    for i in range(0, cols, 1):
+        w.append(random.uniform(-.01, .01))
+
+    ###################
+    ## Gradient descent
+    ###################
+
+    ###Initializations
+    eta = .001
+    
+    dellf = []
+    for j in range(0, cols, 1):
+        dellf.append(0)
+
+    prevobj = 1000000000
+    obj = prevobj - 10
+    ###Main iteration loop #####
+    while(prevobj - obj > .001):
+
+        prevobj = obj
+        
+        ####Reset dellf to 0
+        for j in range(0, cols, 1):
+            dellf[j] = 0
+
+        ####Compute dellf ####
+        for i in range(0, rows, 1):
+            dp = dotproduct(w, traindata[i])
+            lg = trainlabels[i] - (1 / (1 + math.exp(-1 * dp)))
+            for j in range(0, cols, 1):
+                dellf[j] +=  lg * traindata[i][j]
+                
+                
+         
+        ####Update w ####
+        for j in range(0, cols, 1):
+            w[j] += eta * dellf[j]
+
+         
+        error = 0
+        ####Compute logistic regression error ###
+        for i in range(0, rows, 1):
+            error += math.log(1+ math.exp((-1*trainlabels[i]) * dotproduct(w, traindata[i])))
+        obj = error 
+        #print("Objective is ", error)
+
+        
+    return w
+
+
+#### MAIN #########
+
+###################
+#### Code to read train data and train labels
+###################
+
+traindatafile = sys.argv[1]
+f = open(traindatafile)
+#f = open("bc.train.0.txt")
+traindata = []
+trainlabels = []
+i = 0
+l = f.readline()
+while( l != ''):
+    a = l.split()
+    l2 = []
+    trainlabels.append(int(a[0]))
+    for j in range(1, len(a), 1):
+        l2.append(float(a[j]))
+    l2.append(1)
+    traindata.append(l2)
+    l = f.readline()
+
+testdatafile = sys.argv[2]
+f = open(testdatafile)
+#f = open("bc.test.0.txt")
+testdata = []
+testlabels = []
+i = 0
+l = f.readline()
+while( l != ''):
+    a = l.split()
+    l2 = []
+    testlabels.append(int(a[0]))
+    for j in range(1, len(a), 1):
+        l2.append(float(a[j]))
+    l2.append(1)
+    testdata.append(l2)
+    l = f.readline()
+    
+f.close()
+
+
+
+###################
+#### Code to test data and test labels
+#### The test labels are to be used
+#### only for evaluation and nowhere else.
+#### When your project is being graded we
+#### will use 0 label for all test points
+###################
+
+[traindata, testdata] = standardize_data(traindata, testdata)
+[traindata, testdata] = normalize_data(traindata, testdata)
+
+
+
+w = least_squares(traindata, trainlabels)
+wR = least_squares_regularized(traindata, trainlabels)
+wH = hinge_loss(traindata,trainlabels)
+wHr = hinge_loss_regularized(traindata, trainlabels)
+wLR = logistic_loss(traindata, trainlabels)
+
+
+###################
+## Optional for testing on toy data
+## Comment out when submitting project
+###################
+#print(w)
+'''
+wlen = math.sqrt(w[0]**2 + w[1]**2)
+dist_to_origin = abs(w[2])/wlen
+print("Dist to origin=",dist_to_origin)
+
+wlen=0
+for i in range(0, len(w), 1):
+	wlen += w[i]**2
+wlen=math.sqrt(wlen)
+print("wlen=",wlen)
+'''
+
+###################
+#### Classify unlabeled points
+##################
+
+##### Least Square Output ######
+
+OUT = open("least_squares_predictions", 'w')
+OUT.write("Pred     Actual\n")
+#print("Pred   Actual")
+for i in range(0, len(testdata), 1):
+    dp = dotproduct(w, testdata[i])
+    if (dp < 0 ):
+        #print(-1, '   ' , testlabels[i])
+        OUT.write("-1       ")
+        OUT.write(str(testlabels[i]))
+        OUT.write("\n")
+    else:
+        #print(1, '   ' , testlabels[i])
+        OUT.write("1        ")
+        OUT.write(str(testlabels[i]))
+        OUT.write("\n")
+
+OUT.close()
+
+print('\n\n\n')
+
+##### Hinge Loss Output ######
+
+'''
+wlen = math.sqrt(wH[0]**2 + wH[1]**2)
+dist_to_origin = abs(wH[2])/wlen
+print("Dist to origin=",dist_to_origin)
+
+wlen=0
+for i in range(0, len(wH), 1):
+	wlen += wH[i]**2
+wlen=math.sqrt(wlen)
+print("wlen=",wlen)
+'''
+OUTH = open("hinge_loss_predictions", 'w')
+OUTH.write("Pred     Actual\n")
+#print("Pred   Actual")
+for i in range(0, len(testdata), 1):
+    dp = dotproduct(wH, testdata[i])
+    if (dp < 0 ):
+        #print(-1, '   ' , testlabels[i])
+        OUTH.write("-1       ")
+        OUTH.write(str(testlabels[i]))
+        OUTH.write("\n")
+    else:
+        #print(1, '   ' , testlabels[i])
+        OUTH.write("1        ")
+        OUTH.write(str(testlabels[i]))
+        OUTH.write("\n")
+
+OUTH.close()
+
+
+print('\n\n\n')
+
+###### Least Square Regularized Output #######
+'''
+wlen = math.sqrt(wR[0]**2 + wR[1]**2)
+dist_to_origin = abs(wR[2])/wlen
+print("Dist to origin=",dist_to_origin)
+
+wlen=0
+for i in range(0, len(wR), 1):
+	wlen += wR[i]**2
+wlen=math.sqrt(wlen)
+print("wlen=",wlen)
+'''
+OUTR = open("least_square_regularized_predictions", 'w')
+OUTR.write("Pred     Actual\n")
+#print("Pred   Actual")
+for i in range(0, len(testdata), 1):
+    dp = dotproduct(wR, testdata[i])
+    if (dp < 0 ):
+        #print(-1, '   ' , testlabels[i])
+        OUTR.write("-1       ")
+        OUTR.write(str(testlabels[i]))
+        OUTR.write("\n")
+    else:
+        #print(1, '   ' , testlabels[i])
+        OUTR.write("1        ")
+        OUTR.write(str(testlabels[i]))
+        OUTR.write("\n")
+
+OUTR.close()
+
+
+
+print('\n\n\n')
+
+
+###### Hinge Loss Regularized Output ######
+'''
+wlen = math.sqrt(wHr[0]**2 + wHr[1]**2)
+dist_to_origin = abs(wHr[2])/wlen
+print("Dist to origin=",dist_to_origin)
+
+wlen=0
+for i in range(0, len(wHr), 1):
+	wlen += wHr[i]**2
+wlen=math.sqrt(wlen)
+print("wlen=",wlen)
+'''
+
+OUTHR = open("hinge_loss_regularized_predictions", 'w')
+OUTHR.write("Pred     Actual\n")
+#print("Pred   Actual")
+for i in range(0, len(testdata), 1):
+    dp = dotproduct(wHr, testdata[i])
+    if (dp < 0 ):
+        #print(-1, '   ' , testlabels[i])
+        OUTHR.write("-1       ")
+        OUTHR.write(str(testlabels[i]))
+        OUTHR.write("\n")
+    else:
+        #print(1, '   ' , testlabels[i])
+        OUTHR.write("1        ")
+        OUTHR.write(str(testlabels[i]))
+        OUTHR.write("\n")
+
+OUTHR.close()
+
+print('\n\n\n')
+
+
+###### Logistic Regression ######
+'''
+wlen = math.sqrt(wLR[0]**2 + wLR[1]**2)
+dist_to_origin = abs(wLR[2])/wlen
+print("Dist to origin=",dist_to_origin)
+
+wlen=0
+for i in range(0, len(wLR), 1):
+	wlen += wLR[i]**2
+wlen=math.sqrt(wlen)
+print("wlen=",wlen)
+'''
+OUTLR = open("logistic_regression_predictions", 'w')
+OUTLR.write("Pred     Actual\n")
+#print("Pred   Actual")
+for i in range(0, len(testdata), 1):
+    dp = dotproduct(wLR, testdata[i])
+    if (dp < 0.5 ):
+        OUTLR.write("0        ")
+        #print(0 , '     ')
+        if(testlabels[i] == 1):
+            OUTLR.write(str(testlabels[i]))
+        else:
+             OUTLR.write('0')
+        OUTLR.write("\n")
+    else:
+        #print(1, '     ' )
+        OUTLR.write("1        ")
+        if(testlabels[i] == 1):
+            OUTLR.write(str(testlabels[i]))
+        else:
+             OUTLR.write('0')
+        OUTLR.write("\n")
+
+OUTLR.close()
